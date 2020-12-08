@@ -1,0 +1,7 @@
+{
+    "bot_token": "TELEGRAM_BOT_TOKEN",
+    "telegram_channel_id": 123456789,
+    "backup_period": 1,
+    "sqlalchemy_echo": false,
+    "force_reset_database": false
+}
