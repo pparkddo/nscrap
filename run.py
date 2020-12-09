@@ -14,24 +14,13 @@ from press import read_press, validate_press_names
 from keywords import read_keywords, is_keyword_match
 # pylint: disable=wrong-import-order
 from settings import read_settings
-from backup import dump
-from scraper import ArticleScraper, ArticleConnectionError, ArticleParsingError
-from scraper.lawissue import LawIssueScraper
-from scraper.zum import ZumScraper
-from scraper.hk import HkScraper
-from scraper.chosunbiz import ChosunBizScraper
-from scraper.newsis import NewsisScraper
-from scraper.asiae import AsiaeScraper
-from scraper.inews import InewsScraper
-from scraper.newsone import NewsOneScraper
-from scraper.dealsite import DealSiteScraper
-from scraper.yna import YnaScraper
-from scraper.herald import HeraldScraper
-from scraper.thebell import TheBellScraper
-from scraper.mtn import MoneyTodayScraper
-from scraper.etoday import ETodayScraper
-from scraper.seoul import SeoulScraper
-from scraper.mk import MKScraper
+from backup import dump, should_backup
+from scraper import (
+    ArticleScraper,
+    ArticleConnectionError,
+    ArticleParsingError,
+    get_all_article_scrapers
+)
 
 
 def signal_handler(sig, frame):
@@ -44,45 +33,19 @@ signal.signal(signal.SIGINT, signal_handler)
 
 
 SETTINGS = read_settings()
-TELEGRAM_CHANEEL_ID = SETTINGS["telegram_channel_id"]
-BACKUP_PERIOD = SETTINGS["backup_period"]
 KEYWORDS = read_keywords()
 PRESS = read_press()
 MESSENGER = Messenger()
-SCRAPERS = [
-    LawIssueScraper(),
-    ZumScraper(),
-    HkScraper(),
-    ChosunBizScraper(),
-    NewsisScraper(),
-    AsiaeScraper(),
-    InewsScraper(),
-    NewsOneScraper(),
-    DealSiteScraper(),
-    YnaScraper(),
-    HeraldScraper(),
-    TheBellScraper(),
-    MoneyTodayScraper(),
-    ETodayScraper(),
-    SeoulScraper(),
-    MKScraper(),
-]
+SCRAPERS = get_all_article_scrapers()
 SCRAPER_PRESS_NAMES = [each.get_press_name() for each in SCRAPERS]
 validate_press_names(PRESS, SCRAPER_PRESS_NAMES)
-
-
-def should_backup():
-    first_timestamp = Article.get_first_timestamp()
-    if not first_timestamp:
-        return False
-    delta = datetime.now() - first_timestamp
-    return delta.days >= BACKUP_PERIOD
 
 
 def setup():
     create_all_tables()
     print("[+] Completely set Database")
-    if should_backup() or SETTINGS["force_reset_database"]:
+    first_timestamp = Article.get_first_timestamp()
+    if should_backup(first_timestamp, backup_period) or SETTINGS["force_reset_database"]:
         articles = Article.get_all_articles()
         dump(articles)
         print("[+] Backup(dump) existing database")
@@ -96,14 +59,10 @@ def get_new_articles(scraped_articles):
     return list(filter(lambda x: x.title not in existing_article_titles, scraped_articles))
 
 
-def send_message(content):
-    MESSENGER.send(content, TELEGRAM_CHANEEL_ID)
-
-
 def send_article_message(article: Article):
     content = article.to_mesage_format()
     print(f"[+] Send message {content}")
-    send_message(content)
+    MESSENGER.send(content)
 
 
 def scrap_new_articles(scraper: ArticleScraper) -> List[Article]:
@@ -170,7 +129,7 @@ def validate_scraper(scraper: ArticleScraper) -> bool:
 
 def validate_messenger():
     try:
-        send_message("Validation message from nscrap")
+        MESSENGER.send("Validation message from nscrap")
         print("[+] Send validation message from nscrap")
     except MessengerError as error:
         print(error)

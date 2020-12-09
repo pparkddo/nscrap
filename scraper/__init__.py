@@ -21,3 +21,7 @@ class ArticleConnectionError(Exception):
 
 class ArticleParsingError(Exception):
     pass
+
+
+def get_all_article_scrapers() -> List[ArticleScraper]:
+    return [each() for each in ArticleScraper.__subclasses__()]

@@ -5,14 +5,11 @@ from sqlalchemy.orm import sessionmaker
 
 from sqlalchemy_repr import RepresentableBase
 
-from settings import read_settings
+import config
 
 
-SETTINGS = read_settings()
-
-
-URI = "sqlite+pysqlite:///nscrap.db"
-ECHO = SETTINGS["sqlalchemy_echo"]
+URI = config.DATABASE_URI
+ECHO = config.SQLALCHEMY_ECHO
 
 
 Base = declarative_base(cls=RepresentableBase)
