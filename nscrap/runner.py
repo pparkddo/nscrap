@@ -8,7 +8,7 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from .messenger import Messenger, MessengerError
 from .scraper import Article, ArticleScraper, validate_scraper
 from .press import validate_press_names, Press
-from .keywords import Keyword
+from .keywords import Keyword, drop_duplicated_keywords
 
 
 class ScraperRunner:
@@ -53,17 +53,21 @@ class ScraperRunner:
     def add_press(self, press: Union[Press, List[Press]]) -> None:
         if not isinstance(press, list):
             self.press.append(press)
-        self.press.extend(press)
+        else:
+            self.press.extend(press)
 
     def add_keyword(self, keywords: Union[Keyword, List[Keyword]]) -> None:
         if not isinstance(keywords, list):
             self.keywords.append(keywords)
-        self.keywords.extend(keywords)
+        else:
+            self.keywords.extend(keywords)
+        self.keywords = drop_duplicated_keywords(self.keywords)
 
     def add_scraper(self, scrapers: Union[ArticleScraper, List[ArticleScraper]]) -> None:
         if not isinstance(scrapers, list):
             self.scrapers.append(scrapers)
-        self.scrapers.extend(scrapers)
+        else:
+            self.scrapers.extend(scrapers)
 
     def send_article_message(self, article: Article) -> None:
         content = article.to_mesage_format()

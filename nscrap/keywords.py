@@ -16,5 +16,5 @@ def _sanitize(keyword):
     return keyword.strip().upper()
 
 
-def validate_keywords(keywords: List[Keyword]):
+def drop_duplicated_keywords(keywords: List[Keyword]):
     return list(set(keywords))
