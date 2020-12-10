@@ -17,13 +17,11 @@ class Messenger:
 class TelegramMessenger(Messenger):
 
     def __init__(self, token, chat_id):
-        # pylint: disable=unused-argument
         self.token = token
         self.chat_id = chat_id
         self.bot = Bot(self.token)
 
     def send(self, content: str) -> None:
-        # pylint: disable=invalid-name
         try:
             self.bot.send_message(chat_id=self.chat_id, text=content)
         except Exception as error:
