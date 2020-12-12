@@ -1,6 +1,5 @@
 from typing import List, Optional, Union
 from datetime import datetime
-from queue import Queue
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -9,6 +8,7 @@ from .messenger import Messenger, MessengerError
 from .scraper import Article, ArticleScraper, validate_scraper
 from .press import validate_press_names, Press
 from .keywords import Keyword, drop_duplicated_keywords
+from .container import ArticleContainer, QueueContainer
 
 
 class ScraperRunner:
@@ -19,13 +19,14 @@ class ScraperRunner:
         scrapers: Optional[List[ArticleScraper]] = None,
         press: Optional[List[Press]] = None,
         keywords: Optional[List[Keyword]] = None,
+        article_container: Optional[ArticleContainer] = None,
     ):
         self.messenger = messenger
         self.scheduler = None
         self.scrapers = scrapers if scrapers else []
         self.press = press if press else []
         self.keywords = keywords if keywords else []
-        self.articles = Queue()
+        self.article_container = article_container if article_container else QueueContainer()
 
     def _get_scheduler(self):
         executors = {
@@ -77,21 +78,16 @@ class ScraperRunner:
     def is_contains_any_keyword(self, word) -> bool:
         return any([keyword.is_in(word) for keyword in self.keywords])
 
-    def get_all_articles(self) -> List[Article]:
-        return list(self.articles.queue)
-
     def get_new_articles(self, scraped_articles: List[Article]) -> List[Article]:
-        existing_article_titles = [each.title for each in self.get_all_articles()]
+        existing_article_titles = [each.title for each in self.article_container.get_all_articles()]
+        if not scraped_articles:
+            return []
         return list(filter(lambda x: x.title not in existing_article_titles, scraped_articles))
 
     def scrap_new_articles(self, scraper: ArticleScraper) -> List[Article]:
         print(f"[+] Start {scraper.get_press_name()} scraper at {datetime.now():%Y-%m-%d %H:%M:%S}")
         articles = scraper.get_articles()
         return self.get_new_articles(articles)
-
-    def add_new_articles(self, new_articles: List[Article]) -> None:
-        for each in new_articles:
-            self.articles.put(each)
 
     def scrap(self, scraper: ArticleScraper) -> None:
         try:
@@ -100,7 +96,7 @@ class ScraperRunner:
                 print(f"[+] Scrap {article.to_mesage_format()}")
                 if self.is_contains_any_keyword(article.title):
                     self.send_article_message(article)
-            self.add_new_articles(new_articles)
+            self.article_container.add_articles(new_articles)
         except MessengerError:
             # messenger api limit error
             print("[+] MessengerError occurred. Messenger api limit may have been exceeded")
