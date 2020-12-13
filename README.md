@@ -2,7 +2,14 @@
 주기적으로 Scraper 를 실행하여 기사제목에 특정 키워드가 포함되면 Messenger 를 통해 알림을 발송합니다  
 
 # Installation
+```
+pip install nscrap
+```
+Or
+```
 git clone https://github.com/pparkddo/nscrap.git
+pip install -r requirements.txt
+```
 
 # Usage
 
@@ -74,7 +81,7 @@ runner.add_keyword(keywords)
 runner.add_scraper(scrapers)
 runner.start()  # ctrl+c 를 입력하면 스케쥴러 종료
 ```
-OUTPUT
+Output
 ```
 [+] Send validation message from nscrap
 [+] Test succeed: 한국경제 passed test
