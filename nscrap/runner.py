@@ -1,5 +1,6 @@
 from typing import List, Optional, Union
 from datetime import datetime
+from threading import Lock
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -27,6 +28,7 @@ class ScraperRunner:
         self.press = press if press else []
         self.keywords = keywords if keywords else []
         self.article_container = article_container if article_container else QueueContainer()
+        self.lock = Lock()
 
     def _get_scheduler(self):
         executors = {
@@ -84,19 +86,20 @@ class ScraperRunner:
             return []
         return list(filter(lambda x: x.title not in existing_article_titles, scraped_articles))
 
-    def scrap_new_articles(self, scraper: ArticleScraper) -> List[Article]:
+    def _scrap_articles(self, scraper: ArticleScraper) -> List[Article]:
         print(f"[+] Start {scraper.get_press_name()} scraper at {datetime.now():%Y-%m-%d %H:%M:%S}")
-        articles = scraper.get_articles()
-        return self.get_new_articles(articles)
+        return scraper.get_articles()
 
     def scrap(self, scraper: ArticleScraper) -> None:
         try:
-            new_articles = self.scrap_new_articles(scraper)
+            scraped_articles = self._scrap_articles(scraper)
+            with self.lock:
+                new_articles = self.get_new_articles(scraped_articles)
+                self.article_container.add_articles(new_articles)
             for article in new_articles:
                 print(f"[+] Scrap {article.to_mesage_format()}")
                 if self.is_contains_any_keyword(article.title):
                     self.send_article_message(article)
-            self.article_container.add_articles(new_articles)
         except MessengerError:
             # messenger api limit error
             print("[+] MessengerError occurred. Messenger api limit may have been exceeded")

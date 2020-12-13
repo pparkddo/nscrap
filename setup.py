@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf8") as file:
 
 setuptools.setup(
     name="nscrap",
-    version="0.0.2",
+    version="0.0.4",
     author="pparkddo",
     author_email="ehdud3453@gmail.com",
     description="Articles notification by scheduled web scrapers",

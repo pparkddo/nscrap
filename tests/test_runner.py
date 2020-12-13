@@ -4,7 +4,7 @@ from datetime import datetime
 
 from nscrap.runner import ScraperRunner
 from nscrap.messenger import Messenger
-from nscrap.scraper import Article
+from nscrap.scraper import Article, ArticleScraper
 from nscrap.keywords import Keyword
 
 
@@ -14,6 +14,15 @@ class NoneMesseneger(Messenger):
         pass
 
 
+class TestScraper(ArticleScraper):
+
+    def get_press_name(self):
+        return "test"
+
+    def get_articles(self):
+        return [Article("test", "test", datetime.now())]
+
+
 class RunnerTestCase(TestCase):
 
     def setUp(self):
@@ -21,16 +30,12 @@ class RunnerTestCase(TestCase):
         self.runner = ScraperRunner(self.messenger)
 
     def test_shared_article(self):
-        number_of_articles = 30
-        number_of_threads = 30
+        number_of_threads = 100
 
-        articles = [
-            Article(str(index), str(index), datetime.now())
-            for index in range(number_of_articles)
-        ]
+        scraper = TestScraper()
 
         threads = [
-            Thread(target=self.runner.article_container.add_articles, args=(articles,))
+            Thread(target=self.runner.scrap, args=(scraper,))
             for _ in range(number_of_threads)
         ]
 
@@ -40,10 +45,7 @@ class RunnerTestCase(TestCase):
         for thread in threads:
             thread.join()
 
-        self.assertEqual(
-            len(self.runner.article_container.get_all_articles()),
-            number_of_articles * number_of_threads
-        )
+        self.assertEqual(len(self.runner.article_container.get_all_articles()), 1)
 
     def test_get_new_articles(self):
         existing_articles = [
